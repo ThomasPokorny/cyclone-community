@@ -1,17 +1,32 @@
 # Cyclone 🌪️ - AI Code Review Tool
 
-A Go-based tool that integrates with GitHub to provide AI-powered code reviews on pull requests using Claude AI.
+A lightweight, self-hosted Go tool that integrates with GitHub to provide AI-powered code reviews on pull requests using Claude AI.
+
+## Why Cyclone?
+
+LLMs offer real potential for code reviews, particularly for semantic analysis that goes beyond what static analysis tools can catch. However, the current landscape of AI code review tools suffers from:
+
+- **Excessive pricing** for what is essentially a webhook + LLM integration
+- **Vendor lock-in** with inflexible, closed systems
+- **Lack of control** over prompts, behavior, and hosting
+
+**Cyclone is:**
+- ✅ **Completely free and open source** - run it anywhere you want
+- ✅ **Full control** - modify the system prompt, codebase, and behavior
+- ✅ **Budget-friendly** - bring your own API key, pay only for what you use
+- ✅ **Transparent** - no per-user pricing schemes or hidden costs
+
+While Cyclone currently integrates with Anthropic's Claude, I'm working towards full AI provider agnosticism, giving you the freedom to choose any LLM you prefer.
 
 ## ✨ Features
 
-- **🤖 AI-Powered Reviews**: Uses Claude 3.5 Sonnet for intelligent code analysis
-- **📍 Line-Specific Comments**: Comments appear directly on specific lines in the "Files changed" tab
-- **📋 Comprehensive Summaries**: Overall PR analysis with structured feedback and poetry
+- **🤖 AI-Powered Reviews**: Uses Claude 3.5 Sonnet for code analysis
+- **📍 Line-Specific Comments**: Comments appear directly on relevant lines in the "Files changed" tab
+- **📋 Comprehensive Summaries**: Overall PR analysis with structured feedback
 - **🏷️ Categorized Feedback**: Issues tagged by type (nit, suggestion, issue, blocking) and focus area (security, performance, style, etc.)
 - **⚙️ Repository-Specific Configuration**: Custom review precision and prompts per repository
-- **🔄 Smart Review Triggers**: Only reviews on PR open and ready-for-review events
+- **📄 Smart Review Triggers**: Reviews on PR open and ready-for-review events
 - **⚡ Real-time Processing**: Responds to PR events via GitHub webhooks
-- **🎨 Smart Formatting**: Includes code examples, collaborative language, and lighthearted poems
 - **🛡️ Repository Filtering**: Only reviews configured repositories, ignores others
 
 ## 🚀 Setup
@@ -20,11 +35,14 @@ A Go-based tool that integrates with GitHub to provide AI-powered code reviews o
 - **Go 1.21+** installed
 - **GitHub Personal Access Token** with `repo` and `pull_requests:write` permissions
 - **Anthropic API Key** for Claude integration
+- **Webhook accessibility** - Either:
+    - A publicly accessible endpoint (e.g., Railway, Heroku, VPS)
+    - A tunnel service like ngrok for local development (see step 6 below)
 
 ### 2. Installation
 ```bash
-git clone https://github.com/ThomasPokorny/cyclone-ai.git
-cd cyclone-ai
+git clone https://github.com/ThomasPokorny/cyclone-community.git
+cd cyclone-community
 go mod tidy
 ```
 
@@ -41,8 +59,10 @@ WEBHOOK_SECRET=optional_webhook_secret
 - **GitHub Token**: Settings → Developer settings → Personal access tokens
 - **Anthropic API Key**: [console.anthropic.com](https://console.anthropic.com) → API Keys
 
-### 4. Create Review Configuration
-Create a `review-config.json` file in the project root:
+### 4. Create Review Configuration (Optional)
+
+Create a `review-config.json` file in the project root to customize review behavior per repository. If no configuration is provided for a specific repository, Cyclone will use a default configuration with `"medium"` precision.
+
 ```json
 {
   "organizations": [
@@ -72,58 +92,27 @@ Create a `review-config.json` file in the project root:
 
 **Precision levels:**
 - `"minor"`: Only critical issues and bugs
-- `"medium"`: Balanced review (recommended)
+- `"medium"`: Balanced review (default)
 - `"strict"`: Thorough review including style and best practices
 
-### 5. Customize System Prompt (Optional)
-
-Cyclone uses a customizable system prompt template for AI reviews. The default prompt works great out of the box, but you can customize it by creating a `prompts/system-prompt.txt` file:
-
-```bash
-mkdir prompts
-# Copy and modify the default prompt template
-```
-
-**Template Variables (all automatic):**
-- `{{.Title}}` - PR title *(mandatory)*
-- `{{.Body}}` - PR description *(mandatory)*
-- `{{.Precision}}` - Review guidelines based on precision level *(mandatory)*
-- `{{.Diff}}` - Code changes diff *(mandatory)*
-- `{{.CustomPrompt}}` - Repository-specific prompt from config *(optional, can be empty)*
-
-**Example template snippet:**
-```
-You are Cyclone, an AI code review assistant.
-
-**PR Title:** {{.Title}}
-**PR Description:** {{.Body}}
-**Review Precision:** {{.Precision}}
-
-**Code Changes:**
-{{.Diff}}
-
-{{.CustomPrompt}}
-
-Please provide constructive feedback...
-```
-
-If no custom template is found, Cyclone uses the built-in default prompt.
-
-### 6. Run Cyclone
+### 5. Run Cyclone
 ```bash
 go run main.go
 ```
 
-### 7. Expose with ngrok (for webhook testing)
+### 6. Expose with ngrok (optional for local development)
+If running locally, you'll need to expose your webhook endpoint using ngrok, or any other tool of your choice:
 ```bash
 # Install ngrok: https://ngrok.com/download
 ngrok http 8080
 # Note the https URL (e.g., https://abc123.ngrok.io)
 ```
 
-### 8. Configure GitHub Webhook
+For production, consider hosting on platforms like Railway, Heroku, or your own VPS.
+
+### 7. Configure GitHub Webhook
 1. Go to your repository → **Settings** → **Webhooks** → **Add webhook**
-2. **Payload URL**: `https://your-ngrok-url.ngrok.io/webhook`
+2. **Payload URL**: `https://your-domain.com/webhook` (or your ngrok URL for testing)
 3. **Content type**: `application/json`
 4. **Events**: Select "Pull requests"
 5. **Active**: ✅ Checked
@@ -171,7 +160,7 @@ Cyclone categorizes feedback with emojis and prefixes:
 🌪️ Cyclone AI Code Review
 
 ✨ Overview
-Great work on enhancing the authentication system! This PR brings some solid improvements...
+This PR enhances the authentication system with improved security measures.
 
 🚀 What's Working Well
 - 🔧 Clean dependency injection patterns
@@ -179,15 +168,6 @@ Great work on enhancing the authentication system! This PR brings some solid imp
 
 🎯 Key Areas for Improvement
 The JWT token validation could benefit from additional security checks...
-
----
-
-And now, a little poem about your changes ✨:
-
-*Code reviews with a gentle breeze,*
-*Security improvements that aim to please.*
-*With tokens checked and errors caught,*
-*Quality code is what you've brought!*
 ```
 
 **Line-Specific Comments:**
@@ -214,7 +194,7 @@ curl -X POST http://localhost:8080/webhook \
 
 ### Project Structure
 ```
-cyclone-ai/
+cyclone-community/
 ├── cmd/
 │   └── cyclone/
 │       └── main.go              # Application entry point
@@ -230,34 +210,36 @@ cyclone-ai/
 │       ├── github.go            # GitHub API operations (diff, reviews, comments)
 │       ├── parser.go            # Claude response parsing logic
 │       └── types.go             # Review-related types and structures
-├── prompts/
-│   └── system-prompt.txt        # Customizable AI system prompt template
 ├── .env                         # Environment variables (local development)
 ├── .gitignore                   # Git ignore rules
-├── review-config.json           # Repository review configuration
+├── review-config.json           # Repository review configuration (optional)
 ├── go.mod                       # Go module definition
 ├── go.sum                       # Go module checksums
 └── README.md                    # This file
 ```
 
-**Package Responsibilities:**
-- **`cmd/cyclone/`** - Application entry point and server startup
-- **`internal/bot/`** - Core bot orchestration, HTTP routing, and webhook handling
-- **`internal/config/`** - Configuration management (environment variables, JSON config)
-- **`internal/review/`** - All review logic (AI integration, GitHub operations, response parsing)
-- **`configs/`** - Configuration files for different environments
+## Current Limitations
+
+Cyclone Community currently:
+- Runs once per PR when created (doesn't yet respond to updates or comments)
+- Uses GitHub Personal Access Tokens for authentication (comments appear under the token owner's account)
+- Integrates only with Anthropic's Claude API
+
+We're actively working to expand these capabilities (see Next Steps below).
 
 ## ⚡ Next Steps
 
-- [ ] Add support for configuration reloading without restart
-- [ ] Implement webhook signature validation for security
-- [ ] Create web dashboard for configuration management
-- [ ] Add metrics and monitoring capabilities
-- [ ] Support for GitHub Apps (beyond Personal Access Tokens)
-- [ ] Integration with team coding standards and style guides
-- [ ] Multi-organization support with different API keys
+- [ ] **AI/LLM provider agnosticism** - Support for OpenAI, local models, and other providers
+- [ ] **GitHub App authentication** - Support for GitHub private keys and App installation
+- [ ] **Enhanced PR interactions** - Respond to PR updates, reply to review comments, and re-review on demand
+- [ ] **Comprehensive testing** - Unit tests, integration tests, and CI/CD pipeline
+- [ ] **Improved diff handling** - Better context awareness for large PRs
+- [ ] **Configuration hot-reloading** - Update review settings without restart
+- [ ] **Web dashboard** - UI for managing configurations and viewing review history
 
 ## 🤝 Contributing
+
+Contributions are more than welcome! 🫶
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -267,4 +249,10 @@ cyclone-ai/
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Submit a pull request (and watch Cyclone review it! 🌪️)
 
-**Built with ❤️ by Thomas Pokorny** 🌪️
+## 📄 License
+
+This project is released into the public domain under the [Unlicense](https://unlicense.org/).
+
+---
+
+**Built by Thomas Pokorny** 🌪️
