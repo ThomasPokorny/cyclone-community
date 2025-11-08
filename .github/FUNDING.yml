@@ -1,0 +1,5 @@
+# GitHub Sponsors funding configuration
+# See: https://docs.github.com/articles/displaying-a-sponsor-button-in-your-repository
+
+# Support Cyclone development through Buy Me a Coffee
+custom: ["https://buymeacoffee.com/cyclone.community"]
