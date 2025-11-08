@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"cyclone/internal/config"
@@ -34,6 +36,15 @@ type ClaudeRequest struct {
 	} `json:"messages"`
 }
 
+// PromptData holds the parameters for prompt template substitution
+type PromptData struct {
+	Title        string
+	Body         string
+	Precision    string
+	Diff         string
+	CustomPrompt string
+}
+
 // NewAIClient creates a new AI client with the provided API key and model
 func NewAIClient(apiKey, model string) *AIClient {
 	return &AIClient{
@@ -42,15 +53,34 @@ func NewAIClient(apiKey, model string) *AIClient {
 	}
 }
 
-// GenerateReview generates an AI review using Claude with repository-specific configuration
-func (ai *AIClient) GenerateReview(diff, title, body string, repoConfig *config.RepositoryConfig) ReviewResult {
-	claudeReview := ai.callClaudeAPI(diff, title, body, repoConfig)
-	return ai.parseClaudeResponse(claudeReview, diff)
+// loadPromptTemplate loads and processes the system prompt template
+func (ai *AIClient) loadPromptTemplate(data PromptData) string {
+	// Try to load from file first
+	promptPath := "prompts/system-prompt.txt"
+	if content, err := os.ReadFile(promptPath); err == nil {
+		template := string(content)
+		return ai.substitutePromptVariables(template, data)
+	}
+
+	// Fallback to hardcoded prompt if file doesn't exist
+	log.Printf("Could not load prompt template from %s, using fallback", promptPath)
+	return ai.getFallbackPrompt(data)
 }
 
-// callClaudeAPI makes a request to Claude API with repository-specific configuration
-func (ai *AIClient) callClaudeAPI(diff, title, body string, repoConfig *config.RepositoryConfig) string {
-	prompt := fmt.Sprintf(`You are Cyclone, an AI code review assistant. Please review this GitHub pull request and provide constructive feedback.
+// substitutePromptVariables replaces template variables with actual values
+func (ai *AIClient) substitutePromptVariables(template string, data PromptData) string {
+	result := template
+	result = strings.ReplaceAll(result, "{{.Title}}", data.Title)
+	result = strings.ReplaceAll(result, "{{.Body}}", data.Body)
+	result = strings.ReplaceAll(result, "{{.Precision}}", data.Precision)
+	result = strings.ReplaceAll(result, "{{.Diff}}", data.Diff)
+	result = strings.ReplaceAll(result, "{{.CustomPrompt}}", data.CustomPrompt)
+	return result
+}
+
+// getFallbackPrompt provides a hardcoded fallback prompt
+func (ai *AIClient) getFallbackPrompt(data PromptData) string {
+	return fmt.Sprintf(`You are Cyclone, an AI code review assistant. Please review this GitHub pull request and provide constructive feedback.
 
 **PR Title:** %s
 
@@ -127,7 +157,26 @@ PR_COMMENT:api/handler.py:67: 🚫 **blocking**: 🔒 **security**: Potential SQ
 
 %s
 
-Be constructive, helpful, and focus on actionable feedback.`, title, body, config.GetPrecisionGuidelines(repoConfig.Precision), diff, repoConfig.CustomPrompt)
+Be constructive, helpful, and focus on actionable feedback.`, data.Title, data.Body, data.Precision, data.Diff, data.CustomPrompt)
+}
+
+// GenerateReview generates an AI review using Claude with repository-specific configuration
+func (ai *AIClient) GenerateReview(diff, title, body string, repoConfig *config.RepositoryConfig) ReviewResult {
+	claudeReview := ai.callClaudeAPI(diff, title, body, repoConfig)
+	return ai.parseClaudeResponse(claudeReview, diff)
+}
+
+// callClaudeAPI makes a request to Claude API with repository-specific configuration
+func (ai *AIClient) callClaudeAPI(diff, title, body string, repoConfig *config.RepositoryConfig) string {
+	promptData := PromptData{
+		Title:        title,
+		Body:         body,
+		Precision:    config.GetPrecisionGuidelines(repoConfig.Precision),
+		Diff:         diff,
+		CustomPrompt: repoConfig.CustomPrompt,
+	}
+
+	prompt := ai.loadPromptTemplate(promptData)
 
 	reqBody := ClaudeRequest{
 		Model:     ai.model, // configurable: claude-sonnet-4-20250514, claude-3-5-sonnet-20241022, claude-3-haiku-20240307

@@ -75,19 +75,53 @@ Create a `review-config.json` file in the project root:
 - `"medium"`: Balanced review (recommended)
 - `"strict"`: Thorough review including style and best practices
 
-### 5. Run Cyclone
+### 5. Customize System Prompt (Optional)
+
+Cyclone uses a customizable system prompt template for AI reviews. The default prompt works great out of the box, but you can customize it by creating a `prompts/system-prompt.txt` file:
+
+```bash
+mkdir prompts
+# Copy and modify the default prompt template
+```
+
+**Template Variables (all automatic):**
+- `{{.Title}}` - PR title *(mandatory)*
+- `{{.Body}}` - PR description *(mandatory)*
+- `{{.Precision}}` - Review guidelines based on precision level *(mandatory)*
+- `{{.Diff}}` - Code changes diff *(mandatory)*
+- `{{.CustomPrompt}}` - Repository-specific prompt from config *(optional, can be empty)*
+
+**Example template snippet:**
+```
+You are Cyclone, an AI code review assistant.
+
+**PR Title:** {{.Title}}
+**PR Description:** {{.Body}}
+**Review Precision:** {{.Precision}}
+
+**Code Changes:**
+{{.Diff}}
+
+{{.CustomPrompt}}
+
+Please provide constructive feedback...
+```
+
+If no custom template is found, Cyclone uses the built-in default prompt.
+
+### 6. Run Cyclone
 ```bash
 go run main.go
 ```
 
-### 6. Expose with ngrok (for webhook testing)
+### 7. Expose with ngrok (for webhook testing)
 ```bash
 # Install ngrok: https://ngrok.com/download
 ngrok http 8080
 # Note the https URL (e.g., https://abc123.ngrok.io)
 ```
 
-### 7. Configure GitHub Webhook
+### 8. Configure GitHub Webhook
 1. Go to your repository → **Settings** → **Webhooks** → **Add webhook**
 2. **Payload URL**: `https://your-ngrok-url.ngrok.io/webhook`
 3. **Content type**: `application/json`
@@ -196,6 +230,8 @@ cyclone-ai/
 │       ├── github.go            # GitHub API operations (diff, reviews, comments)
 │       ├── parser.go            # Claude response parsing logic
 │       └── types.go             # Review-related types and structures
+├── prompts/
+│   └── system-prompt.txt        # Customizable AI system prompt template
 ├── .env                         # Environment variables (local development)
 ├── .gitignore                   # Git ignore rules
 ├── review-config.json           # Repository review configuration
