@@ -256,3 +256,4 @@ This project is released into the public domain under the [Unlicense](https://un
 ---
 
 **Built by Thomas Pokorny** 🌪️
+If Cyclone helps your team ship better code, consider [buying me a coffee](https://buymeacoffee.com/cyclone.community)! ☕
