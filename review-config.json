@@ -1,0 +1,24 @@
+{
+  "organizations": [
+    {
+      "name": "your-github-org",
+      "repositories": [
+        {
+          "name": "critical-service",
+          "precision": "strict",
+          "custom_prompt": "This is a critical production service. Pay special attention to error handling, performance, and security."
+        },
+        {
+          "name": "frontend-app",
+          "precision": "medium",
+          "custom_prompt": "Focus on React best practices, accessibility, and user experience."
+        },
+        {
+          "name": "*",
+          "precision": "medium",
+          "custom_prompt": "Default configuration for all other repositories."
+        }
+      ]
+    }
+  ]
+}
